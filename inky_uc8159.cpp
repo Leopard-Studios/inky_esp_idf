@@ -3,17 +3,13 @@
 #include <cstring>
 
 #include "esp_log.h"
-
-
-#define _RESOLUTION_5_7_INCH    {600, 448}  // Inky Impression 5.7"
-#define _RESOLUTION_4_INCH      {640, 400}    //# Inky Impression 4"
 #define _NUM_SUPPORT_RESOLUTIONS 2
 
 #define _RESOLUTION_SETTING_5_7_INCH 0b11
 #define _RESOLUTION_SETTING_4_INCH 0b10
 
 #define _SPI_MAX_SZ 64
-
+#define TAG "Inky_UC8159"
 resolution_t _SUPPORT_RESOLUTIONS[_NUM_SUPPORT_RESOLUTIONS] =  {_RESOLUTION_5_7_INCH, _RESOLUTION_4_INCH};
 
 Inky_UC8159::~Inky_UC8159(void){
@@ -29,52 +25,20 @@ Initialise an Inky Display structure.
 @param dc_pin: data/command pin for SPI communication
 @param reset_pin: device reset pin
 @param busy_pin: device busy/wait pin
-@param h_flip: enable horizontal display flip, default: False
-@param v_flip: enable vertical display flip, default: False
-@param i2c_bus: the i2c bus; if resolution is null then the eeprom with be interigated
 @param spi_bus: the spi initilised bus  
 */
 Inky_UC8159::Inky_UC8159(
-    resolution_t * resolution, 
+    resolution_t resolution, 
     gpio_num_t cs_pin,
     gpio_num_t dc_pin,
     gpio_num_t reset_pin, 
     gpio_num_t busy_pin,
-    bool h_flip, 
-    bool v_flip, 
-    i2c_master_bus_handle_t i2c_bus,
-    spi_host_device_t   spi_bus
-){
-    if(i2c_bus){
-        read_eeprom(i2c_bus, &_eeprom_data);
-        print_eeprom(&_eeprom_data);
-    }
-
-    assert(resolution != NULL || i2c_bus != NULL );
-
-    // # Check for supported display variant and select the correct resolution
-    // # Eg: 600x480 and 640x400
-    if ( resolution == NULL && i2c_bus != NULL ) 
-    {
-        switch (_eeprom_data.Display_Var)
-        {
-            case 16:
-            _resolution = _RESOLUTION_4_INCH;
-            break;
-            
-            case 14:
-            default:
-            _resolution = _RESOLUTION_5_7_INCH;
-            break;
-        }
-    }
-    
-    else
-    {
-        _resolution = *resolution;
-    }
-    
+    spi_host_device_t spi_bus
+)
+: Adafruit_GFX( resolution.width, resolution.height )
+{
     //store attributes
+    _resolution = resolution;
     _resolution_setting = (_resolution.width == 600) ? _RESOLUTION_SETTING_5_7_INCH : _RESOLUTION_SETTING_4_INCH;
     // self.cols, self.rows, // how are cols and rows different from width and height?
     // self.offset_x, self.offset_y, //  offsets not used in uc8159 ( they are used in ssd1608 and ssd1683)
@@ -87,8 +51,6 @@ Inky_UC8159::Inky_UC8159(
     _buf_len = _resolution.height * _resolution.width / 2;
     _buf = (uint8_t**)malloc( _buf_len );
 
-    uint8_t (*ptrBuf)[_resolution.width/2] = (uint8_t(*)[_resolution.width/2])_buf;
-
     memset(_buf, Colour_7_t::WHITE << 4 | Colour_7_t::WHITE, _buf_len );
     _spi_bus = spi_bus;
     
@@ -97,14 +59,10 @@ Inky_UC8159::Inky_UC8159(
     _reset_pin = reset_pin;
     _busy_pin = busy_pin;
     
-    _h_flip = h_flip;
-    _v_flip = v_flip;
-
     ESP_LOGI("Inky_UC8159","created");
 }
 
 void Inky_UC8159::_reset(){
-
     gpio_set_level(_reset_pin, 0);
     vTaskDelay(100 / portTICK_PERIOD_MS);
     gpio_set_level(_reset_pin, 1);
@@ -113,7 +71,7 @@ void Inky_UC8159::_reset(){
 // Set up Inky GPIO & spi
 esp_err_t Inky_UC8159::_init_hw(){
     esp_err_t status;
-    //check that the resolution is correct
+    //check that the resolution is supported
     bool supported = false;
     for( int i = 0 ; i < _NUM_SUPPORT_RESOLUTIONS ; i++)
     {
@@ -310,7 +268,6 @@ esp_err_t Inky_UC8159::_busy_wait(uint32_t timeout)
     return ESP_ERR_TIMEOUT;
 }
 
-#define _send_data(data, data_len) _spi_transfer(data, data_len)
 void Inky_UC8159::_spi_transfer(uint8_t *data, uint32_t data_len) {
     esp_err_t ret;
     spi_transaction_t t;
@@ -347,7 +304,9 @@ void Inky_UC8159::_spi_transfer(uint8_t *data, uint32_t data_len) {
 @param data array of values
 @param data_len length of data array
 */
-void Inky_UC8159::_send_command(uint8_t command, uint8_t *data, uint32_t data_len){
+void Inky_UC8159::_send_command
+    (uint8_t command, uint8_t *data, uint32_t data_len)
+{
     gpio_set_level(_cs_pin, 0);
     gpio_set_level(_dc_pin, 0);
     _spi_transfer(&command, 1);
@@ -374,13 +333,12 @@ void Inky_UC8159::_send_command(uint8_t command){
 }
 
 /*
-Update display.
+Update display and Show buffer on display.
 Dispatches display update to correct driver.
 */
-void Inky_UC8159::_update( void ){
-
-    // setup();
-    ESP_LOGI("_update", "send buf");
+void Inky_UC8159::show()
+{
+    ESP_LOGI("show", "send buf");
 
     _send_command(UC8159_DTM1, (uint8_t *)_buf, _buf_len );
     
@@ -395,37 +353,26 @@ void Inky_UC8159::_update( void ){
     _busy_wait(200);
 }
 
-//Show buffer on display.
-// @param busy_wait: If True, wait for display update to finish before returning.
-void Inky_UC8159::show(bool busy_wait)
-{
-
-    // region = self.buf
-
-    // if self.v_flip:
-    //     region = numpy.fliplr(region)
-
-    // if self.h_flip:
-    //     region = numpy.flipud(region)
-
-    // if self.rotation:
-    //     region = numpy.rot90(region, self.rotation // 90)
-
-
-    // buf = ((buf[::2] << 4) & 0xF0) | (buf[1::2] & 0x0F)
-
-    _update();
-}
-
 /*
 Set a single pixel.
 @param x: x position on display
 @param y: y position on display
 @param colour: colour to set
 */
-void Inky_UC8159::set_pixel(uint16_t x, uint16_t y, Colour_7_t colour)
+void Inky_UC8159::drawPixel(int16_t x, int16_t y, uint16_t colour)
+// esp_err_t Inky_UC8159::set_pixel(uint16_t x, uint16_t y, uint16_t colour)
 {
-    uint8_t (*ptrBuf)[_resolution.width/2] = (uint8_t(*)[_resolution.width/2])_buf;
+    if( colour >= Colour_7_t::MAX || 
+        x >= _resolution.width || x >= _resolution.height ||
+        x < 0 || y < 0
+    )
+    {
+        ESP_LOGE(TAG, "set_pixel: invalid arg");
+        return;
+    }
+    
+    uint8_t (*ptrBuf)[_resolution.width/2] = 
+        (uint8_t(*)[_resolution.width/2])_buf;
     if(x%2)
     {
         ptrBuf [y][x/2] &= 0xF0;
@@ -436,7 +383,6 @@ void Inky_UC8159::set_pixel(uint16_t x, uint16_t y, Colour_7_t colour)
     }
 }
 
-
-void Inky_UC8159::set_border(Colour_7_t colour){
+void Inky_UC8159::setBorder(Colour_7_t colour){
     _border_colour = colour;
 }

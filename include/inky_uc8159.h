@@ -39,25 +39,25 @@
 #define UC8159_PWS       0xE3
 #define UC8159_TSSET     0xE5
 
+#define _RESOLUTION_5_7_INCH    {600, 448}  // Inky Impression 5.7"
+#define _RESOLUTION_4_INCH      {640, 400}    //# Inky Impression 4"
+
 class Inky_UC8159: public Inky{
     
     public:
     ~Inky_UC8159(void);
     Inky_UC8159(
-        resolution_t * resolution, 
+        resolution_t resolution, 
         gpio_num_t cs_pin,
         gpio_num_t dc_pin,
         gpio_num_t reset_pin, 
         gpio_num_t busy_pin,
-        bool h_flip, 
-        bool v_flip, 
-        i2c_master_bus_handle_t i2c_bus,
         spi_host_device_t   spi_bus
     );
     esp_err_t setup();
-    void set_border(Colour_7_t colour);
-    void set_pixel(uint16_t x, uint16_t y, Colour_7_t colour);
-    void show(bool busy_wait);
+    void setBorder(Colour_7_t colour);
+    void drawPixel(int16_t x, int16_t y, uint16_t colour);
+    void show();
     
     private:
     resolution_t _resolution;
@@ -67,7 +67,6 @@ class Inky_UC8159: public Inky{
     void _send_command(uint8_t command, uint8_t *data, uint32_t data_len);
     void _send_command(uint8_t command);
     void _spi_transfer(uint8_t *data, uint32_t data_len);
-    void _update();
 
     bool _gpio_setup = false;
     bool _h_flip;
