@@ -111,7 +111,7 @@ esp_err_t Inky_E673::setup(){
 
 void Inky_E673::drawPixel(int16_t x, int16_t y, uint16_t colour){
     if( colour >=  Inky_E673::Colour::MAX || 
-        x >= _resolution.width || x >= _resolution.height ||
+        x >= _width || x >= _height ||
         x < 0 || y < 0
     )
     {
@@ -119,6 +119,34 @@ void Inky_E673::drawPixel(int16_t x, int16_t y, uint16_t colour){
         return;
     }
      
+    //map x,y to buffer based on rotation
+    //1=90 cw, 2=180, 3=270cw / 90 ccw
+    int16_t new_x, new_y;
+    switch (rotation)
+    {
+    case 1://90cw
+        // x,y = w-y,x
+        new_x = (_resolution.width-1)-y;
+        new_y = x;
+        break;
+    case 2://180
+        // x,y = w-x, h-y
+        new_x = (_resolution.width-1)-x;
+        new_y = (_resolution.height-1)-y;
+        break;
+    case 3://270cw /90ccw
+        //x,y = y,h-x
+        new_x = y;
+        new_y = (_resolution.height-1)-x;
+        break;
+    default:
+        new_x=x, new_y=y;
+        break;
+    }
+    x=new_x;
+    y=new_y;
+
+
     uint8_t (*ptrBuf)[_resolution.width/2] = 
         (uint8_t(*)[_resolution.width/2])_buf;
     if(x%2)
