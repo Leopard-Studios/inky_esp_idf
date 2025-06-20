@@ -8,5 +8,5 @@ Ported from [Pimoroni's Inky python library](https://github.com/pimoroni/inky/tr
 | Display | Supported | Tested |Notes|
 |-|:-:|:-:|:-|
 | [Inky Impression 5.7"](https://shop.pimoroni.com/products/inky-impression-5-7) | ✅ |✅ | Tested with ESP32-C6 (DFR1117). 5v not required, seemingly works fine with just 3.3v 
-[Inky Impression 7.3" (2025 Edition)](https://shop.pimoroni.com/products/inky-impression-7-3?variant=55186435277179) | ❌ | ❌ |
+[Inky Impression 7.3" (2025 Edition)](https://shop.pimoroni.com/products/inky-impression-7-3?variant=55186435277179) | ✅ | - | Tested with Waveshare 7.3inch 6-Color Spectra 6(E6)
 [Inky Impression 13.3" (2025 Edition)](https://shop.pimoroni.com/products/inky-impression-7-3?variant=55186435277179) | ❌ | ❌ |

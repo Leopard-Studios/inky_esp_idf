@@ -1,3 +1,8 @@
+/*
+    Driver for the pimoroni "Inky Imprssion" that uses the UC8159
+    ? is the UC8159 the same as AC057TC1 ? 
+*/
+
 #include "inky_uc8159.h"
 #include <stdio.h>
 #include <cstring>
@@ -8,7 +13,6 @@
 #define _RESOLUTION_SETTING_5_7_INCH 0b11
 #define _RESOLUTION_SETTING_4_INCH 0b10
 
-#define _SPI_MAX_SZ 64
 #define TAG "Inky_UC8159"
 resolution_t _SUPPORT_RESOLUTIONS[_NUM_SUPPORT_RESOLUTIONS] =  {_RESOLUTION_5_7_INCH, _RESOLUTION_4_INCH};
 
@@ -20,7 +24,7 @@ Inky_UC8159::~Inky_UC8159(void){
 
 /*
 Initialise an Inky Display structure.
-@param resolution: (width, height) in pixels, default: (600, 448)
+@param resolution: (width, height) in pixels
 @param cs_pin: chip-select pin for SPI communication
 @param dc_pin: data/command pin for SPI communication
 @param reset_pin: device reset pin
@@ -37,6 +41,7 @@ Inky_UC8159::Inky_UC8159(
 )
 : Adafruit_GFX( resolution.width, resolution.height )
 {
+    DISPLAY_VAR = Display_Var_t::_7_Colour_UC8159;
     //store attributes
     _resolution = resolution;
     _resolution_setting = (_resolution.width == 600) ? _RESOLUTION_SETTING_5_7_INCH : _RESOLUTION_SETTING_4_INCH;
@@ -51,7 +56,7 @@ Inky_UC8159::Inky_UC8159(
     _buf_len = _resolution.height * _resolution.width / 2;
     _buf = (uint8_t**)malloc( _buf_len );
 
-    memset(_buf, Colour_7_t::WHITE << 4 | Colour_7_t::WHITE, _buf_len );
+    memset(_buf, Inky_UC8159::WHITE<< 4 | Inky_UC8159::WHITE, _buf_len );
     _spi_bus = spi_bus;
     
     _cs_pin = cs_pin;
@@ -68,67 +73,26 @@ void Inky_UC8159::_reset(){
     gpio_set_level(_reset_pin, 1);
 }
 
-// Set up Inky GPIO & spi
-esp_err_t Inky_UC8159::_init_hw(){
-    esp_err_t status;
-    //check that the resolution is supported
-    bool supported = false;
-    for( int i = 0 ; i < _NUM_SUPPORT_RESOLUTIONS ; i++)
-    {
-        if ( 
-            _resolution.width == _SUPPORT_RESOLUTIONS[i].width &&
-            _resolution.height == _SUPPORT_RESOLUTIONS[i].height 
-        ){
-            supported = true;
-            break;
-        }
-    }
-    
-    if( ! supported )
-    {
-        return ESP_ERR_INVALID_ARG;
-    }
-    
-    //add EPD to spi bus
-    if(!_spi_dev){
-        
-        spi_device_interface_config_t devcfg;
-        memset(&devcfg, 0, sizeof(devcfg));
-        devcfg.clock_speed_hz = 2000000;
-        devcfg.mode = 0;
-        // devcfg.spics_io_num = _cs_pin;
-        devcfg.spics_io_num     = -1,
-        devcfg.queue_size = 1;
-        devcfg.duty_cycle_pos   = 128,
-        
-        status = spi_bus_add_device(_spi_bus, &devcfg, &_spi_dev);
-        if( status != ESP_OK )
-        return status;
-    }
-    
-    //set up gpio pins
-    gpio_reset_pin(_cs_pin);
-    gpio_set_direction(_cs_pin, GPIO_MODE_OUTPUT);
-    gpio_set_level(_cs_pin, 1);
-    
-    gpio_reset_pin(_dc_pin);
-    gpio_set_direction(_dc_pin, GPIO_MODE_OUTPUT);
-    gpio_set_level(_dc_pin, 0);
-    
-    gpio_reset_pin(_reset_pin);
-    gpio_set_direction(_reset_pin, GPIO_MODE_OUTPUT);
-    gpio_set_level(_reset_pin, 1);
-    
-    gpio_reset_pin(_busy_pin);
-    gpio_set_direction(_busy_pin, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(_busy_pin, GPIO_FLOATING);
-    
-    _gpio_setup = true;
-    return ESP_OK;
-}
-
 esp_err_t Inky_UC8159::setup(){
     if(!_gpio_setup){
+        //check that the resolution is supported
+        bool supported = false;
+        for( int i = 0 ; i < _NUM_SUPPORT_RESOLUTIONS ; i++)
+        {
+            if ( 
+                _resolution.width == _SUPPORT_RESOLUTIONS[i].width &&
+                _resolution.height == _SUPPORT_RESOLUTIONS[i].height 
+            ){
+                supported = true;
+                break;
+            }
+        }
+        
+        if( ! supported )
+        {
+            return ESP_ERR_INVALID_ARG;
+        }
+    
         _init_hw();
     }
     //reset
@@ -213,7 +177,7 @@ esp_err_t Inky_UC8159::setup(){
     _send_command(
         UC8159_CDI, 
         (uint8_t[]){
-            (uint8_t)(( _border_colour << 5) | 0x17 )
+            (uint8_t)( (_border_colour << 5) | 0x17 )
         }, //0b00110111
         1
     );
@@ -240,96 +204,6 @@ esp_err_t Inky_UC8159::setup(){
     ESP_LOGI("setup","complete");
 
     return ESP_OK;
-}
-
-/*
-Wait for busy/wait pin.
-If the busy_pin is *high* (pulled up by host)
-then assume we're not getting a signal from inky
-and wait the timeout period to be safe.
-*/
-esp_err_t Inky_UC8159::_busy_wait(uint32_t timeout)
-{
-    if( gpio_get_level(_busy_pin) == 1 ){
-        ESP_LOGW("Inky_UC8159::_busy_wait","Held high. Waiting for %ldms",timeout);
-        vTaskDelay(timeout / portTICK_PERIOD_MS);
-        return ESP_ERR_INVALID_STATE;
-    }
-    ESP_LOGI("Inky_UC8159::_busy_wait","Waiting...");
-    
-    // TODO experiement with gpio ETM
-    for(uint32_t i = 0; i < timeout / 10 ; i++){
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-         if( gpio_get_level(_busy_pin) == 1 )
-            return ESP_OK;
-    }
-
-    ESP_LOGW("Inky_UC8159::_busy_wait","Timed out after %ldms",timeout);
-    return ESP_ERR_TIMEOUT;
-}
-
-void Inky_UC8159::_spi_transfer(uint8_t *data, uint32_t data_len) {
-    esp_err_t ret;
-    spi_transaction_t t;
-    uint32_t chunk_size, chunck_count = 0;
-    uint32_t sent_bytes = 0;
-    while(data_len){
-        memset(&t, 0, sizeof(t));       //Zero out the transaction
-        if(data_len>_SPI_MAX_SZ){
-            chunk_size = _SPI_MAX_SZ;
-        }else{
-            chunk_size = data_len ; 
-        }
-        t.length = 8 * chunk_size;        // transaction length is in bits
-        t.tx_buffer = &data[sent_bytes];
-
-        sent_bytes += chunk_size;
-        data_len -= chunk_size;
-
-        t.rxlength=0;
-        ret = spi_device_polling_transmit(_spi_dev, &t);  //Transmit!
-        // ret = spi_device_transmit(_spi_dev, &t);  //Transmit!
-        if(ret!=ESP_OK){
-            ESP_LOGE("_spi_transfer","device transmit: %d. chunck_count:%lu", ret, chunck_count);
-        }
-        assert(ret==ESP_OK);            //Should have had no issues.
-        chunck_count++;
-    }
-
-}
-
-/*  
-@brief Send command over SPI.
-@param command command byte
-@param data array of values
-@param data_len length of data array
-*/
-void Inky_UC8159::_send_command
-    (uint8_t command, uint8_t *data, uint32_t data_len)
-{
-    gpio_set_level(_cs_pin, 0);
-    gpio_set_level(_dc_pin, 0);
-    _spi_transfer(&command, 1);
-    gpio_set_level(_dc_pin, 1);
-    gpio_set_level(_cs_pin, 1);
-    
-    if(data_len){
-        gpio_set_level(_cs_pin, 0);
-        _spi_transfer(data,data_len);
-        gpio_set_level(_cs_pin, 1);
-    }
-}
-
-/*  
-@brief Send command over SPI.
-@param command command byte
-*/
-void Inky_UC8159::_send_command(uint8_t command){
-    gpio_set_level(_cs_pin, 0);
-    gpio_set_level(_dc_pin, 0);
-    _spi_transfer(&command, 1);
-    gpio_set_level(_dc_pin, 1);
-    gpio_set_level(_cs_pin, 1);
 }
 
 /*
@@ -362,7 +236,7 @@ Set a single pixel.
 void Inky_UC8159::drawPixel(int16_t x, int16_t y, uint16_t colour)
 // esp_err_t Inky_UC8159::set_pixel(uint16_t x, uint16_t y, uint16_t colour)
 {
-    if( colour >= Colour_7_t::MAX || 
+    if( colour >= Inky_UC8159::MAX || 
         x >= _resolution.width || x >= _resolution.height ||
         x < 0 || y < 0
     )
@@ -383,6 +257,14 @@ void Inky_UC8159::drawPixel(int16_t x, int16_t y, uint16_t colour)
     }
 }
 
-void Inky_UC8159::setBorder(Colour_7_t colour){
+void Inky_UC8159::setBorder(uint16_t colour){
     _border_colour = colour;
+        _send_command(
+        UC8159_CDI, 
+        (uint8_t[]){
+            (uint8_t)( (_border_colour << 5) | 0x17 )
+        }, //0b00110111
+        1
+    );
+
 }

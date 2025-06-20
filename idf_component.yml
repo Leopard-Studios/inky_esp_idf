@@ -6,7 +6,9 @@ dependencies:
   idf:
     version: '>=4.1.0'
 
-  fasani/adafruit_gfx: ^1.7.8
+  # fasani/adafruit_gfx: ^1.7.8
+  adafruit_gfx:
+    git: https://github.com/Leopard-Studios/Adafruit-GFX-Library-ESP-IDF.git
   # # Put list of dependencies here
   # # For components maintained by Espressif:
   # component: "~1.0.0"

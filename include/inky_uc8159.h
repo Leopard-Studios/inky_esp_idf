@@ -55,30 +55,33 @@ class Inky_UC8159: public Inky{
         spi_host_device_t   spi_bus
     );
     esp_err_t setup();
-    void setBorder(Colour_7_t colour);
+    void setBorder(uint16_t colour);
     void drawPixel(int16_t x, int16_t y, uint16_t colour);
     void show();
     
+    enum Colour {
+        BLACK = 0,
+        WHITE,
+        GREEN,
+        BLUE,
+        RED,
+        YELLOW,
+        ORANGE,
+        MAX
+    };
+    // Inky::DISPLAY_VAR = Display_Var_t::_7_Colour_UC8159;
+    // Display_Var_t DISPLAY_VAR = Display_Var_t::_7_Colour_UC8159;
+    // DISPLAY_VAR = Display_Var_t::_7_Colour_UC8159;
     private:
-    resolution_t _resolution;
-    esp_err_t _init_hw();
+    // resolution_t _resolution;
     void _reset();
-    esp_err_t _busy_wait(uint32_t timeout);
-    void _send_command(uint8_t command, uint8_t *data, uint32_t data_len);
-    void _send_command(uint8_t command);
-    void _spi_transfer(uint8_t *data, uint32_t data_len);
+    // esp_err_t _busy_wait(uint32_t timeout);
+    // void _send_command(uint8_t command, uint8_t *data, uint32_t data_len);
+    // void _send_command(uint8_t command);
+    // void _spi_transfer(uint8_t *data, uint32_t data_len);
 
-    bool _gpio_setup = false;
-    bool _h_flip;
-    bool _v_flip;
-    gpio_num_t _cs_pin;
-    gpio_num_t _dc_pin;
-    gpio_num_t _reset_pin;
-    gpio_num_t _busy_pin;
-    spi_host_device_t   _spi_bus;
-    spi_device_handle_t _spi_dev = NULL;
-    EPD_t _eeprom_data;
-    Colour_7_t _border_colour = WHITE;
+    // bool _gpio_setup = false;
+    uint8_t _border_colour = Inky_UC8159::WHITE;
     uint8_t _resolution_setting;
     uint8_t **_buf;
     uint32_t _buf_len;

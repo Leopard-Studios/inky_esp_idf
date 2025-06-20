@@ -9,7 +9,7 @@
 
 #define NUM_DISPLAY_VAR 23
 typedef enum {
-    // None,
+    None,
     Red_pHAT_HT = 1, //High-Temp
     Yellow_wHAT,
     Black_wHAT,
@@ -65,22 +65,55 @@ typedef struct{
     uint16_t height;
 }resolution_t;
 
-typedef enum {
-    BLACK = 0,
-    WHITE,
-    GREEN,
-    BLUE,
-    RED,
-    YELLOW,
-    ORANGE,
-    MAX
-} Colour_7_t;
+// enum class Colour_7_t : uint16_t {
+//     BLACK = 0,
+//     WHITE,
+//     GREEN,
+//     BLUE,
+//     RED,
+//     YELLOW,
+//     ORANGE,
+//     MAX
+// };
+
+
+// enum class Colour_6_Spectra_t : uint16_t {
+//     BLACK = 0,
+//     WHITE = 1,
+//     YELLOW = 2,
+//     RED = 3,
+//     BLUE = 5,
+//     GREEN = 6,
+//     MAX
+// } ;
 
 class Inky : public virtual Adafruit_GFX{
     public:
+        ~Inky();
         virtual esp_err_t setup() = 0;
         virtual void show() = 0;
-};  
+        Display_Var_t DISPLAY_VAR = Display_Var_t::None;
+
+    protected:
+        gpio_num_t _cs_pin;
+        gpio_num_t _dc_pin;
+        gpio_num_t _reset_pin;
+        gpio_num_t _busy_pin;
+    
+        // resolution_t _resolution;
+        spi_host_device_t   _spi_bus;
+        spi_device_handle_t _spi_dev = NULL;
+        bool _gpio_setup = false;
+        resolution_t _resolution;
+        esp_err_t _init_hw();
+        esp_err_t _busy_wait(uint32_t timeout);
+        void _spi_transfer(uint8_t *data, uint32_t data_len);
+        void _send_command
+            (uint8_t command, uint8_t *data, uint32_t data_len);
+        void _send_command(uint8_t command);
+        void _send_data
+            (uint8_t *data, uint32_t data_len);
+    };  
 
 Inky * Auto(        
     i2c_master_bus_handle_t i2c_bus,
