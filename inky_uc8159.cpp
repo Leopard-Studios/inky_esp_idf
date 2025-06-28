@@ -241,11 +241,12 @@ void Inky_UC8159::drawPixel(int16_t x, int16_t y, uint16_t colour)
 
     
     if( colour >= Inky_UC8159::MAX || 
-        x >= _width || x >= _height ||
+        x >= _width || y >= _height ||
         x < 0 || y < 0
     )
     {
-        ESP_LOGE(TAG, "set_pixel: invalid arg");
+         ESP_LOGE(TAG, "drawPixel: invalid arg. X:%d Width:%d, Y:%d Height:%d: Colour:%u ",
+                x, _width, y, _height, colour );
         return;
     }
 
