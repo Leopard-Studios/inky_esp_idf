@@ -210,3 +210,48 @@ esp_err_t Inky::_busy_wait(uint32_t timeout)
     ESP_LOGW(TAG"::_busy_wait","Timed out after %ldms",timeout);
     return ESP_ERR_TIMEOUT;
 }
+
+
+
+/**************************************************************************/
+/*!
+   @brief   Draw a "8-bit" image at the specified (x,y) position. 
+    @param    x   Top left corner x coordinate
+    @param    y   Top left corner y coordinate
+    @param    bitmap  byte array with 8-bit color bitmap
+    @param    w   Width of bitmap in pixels
+    @param    h   Height of bitmap in pixels
+*/
+/**************************************************************************/
+void Inky::drawRGBBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
+                                 int16_t w, int16_t h) {
+  startWrite();
+  for (int16_t j = 0; j < h; j++, y++) {
+    for (int16_t i = 0; i < w; i++) {
+      writePixel(x + i, y, (uint16_t)(&bitmap[j * w + i]));
+    }
+  }
+  endWrite();
+}
+
+/**************************************************************************/
+/*!
+   @brief   Draw a "8-bit" image at the specified (x,y) position. 
+    @param    x   Top left corner x coordinate
+    @param    y   Top left corner y coordinate
+    @param    bitmap  byte array with 8-bit color bitmap
+    @param    w   Width of bitmap in pixels
+    @param    h   Height of bitmap in pixels
+*/
+/**************************************************************************/
+void Inky::drawRGBBitmap(int16_t x, int16_t y, uint8_t *bitmap,
+                                 int16_t w, int16_t h) {
+  startWrite();
+  for (int16_t j = 0; j < h; j++, y++) {
+    for (int16_t i = 0; i < w; i++) {
+      writePixel(x + i, y, (uint8_t)bitmap[j * w + i]);
+    }
+  }
+  endWrite();
+}
+

@@ -94,6 +94,22 @@ class Inky : public virtual Adafruit_GFX{
         virtual void show() = 0;
         Display_Var_t DISPLAY_VAR = Display_Var_t::None;
 
+
+        // 8bit variants
+        void 
+        drawRGBBitmap(int16_t x, int16_t y, 
+                const uint8_t bitmap[], 
+                int16_t w, int16_t h),
+        drawRGBBitmap(int16_t x, int16_t y,
+                uint8_t *bitmap, 
+                int16_t w, int16_t h);
+        // drawRGBBitmap(int16_t x, int16_t y, 
+        //         const uint8_t bitmap[], const uint8_t mask[], 
+        //         int16_t w, int16_t h),
+        // drawRGBBitmap(int16_t x, int16_t y, 
+        //         uint8_t *bitmap, uint8_t *mask,
+        //         int16_t w, int16_t h);
+
     protected:
         gpio_num_t _cs_pin;
         gpio_num_t _dc_pin;
