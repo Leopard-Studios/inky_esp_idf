@@ -228,30 +228,94 @@ void Inky::drawRGBBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
   startWrite();
   for (int16_t j = 0; j < h; j++, y++) {
     for (int16_t i = 0; i < w; i++) {
-      writePixel(x + i, y, (uint16_t)(&bitmap[j * w + i]));
+      writePixel(x + i, y, (uint16_t)bitmap[j * w + i]);
     }
   }
   endWrite();
 }
 
+// /**************************************************************************/
+// /*!
+//    @brief   Draw a "8-bit" image at the specified (x,y) position. 
+//     @param    x   Top left corner x coordinate
+//     @param    y   Top left corner y coordinate
+//     @param    bitmap  byte array with 8-bit color bitmap
+//     @param    w   Width of bitmap in pixels
+//     @param    h   Height of bitmap in pixels
+// */
+// /**************************************************************************/
+// void Inky::drawRGBBitmap(int16_t x, int16_t y, uint8_t *bitmap,
+//                                  int16_t w, int16_t h) {
+//   startWrite();
+//   for (int16_t j = 0; j < h; j++, y++) {
+//     for (int16_t i = 0; i < w; i++) {
+//       writePixel(x + i, y, (uint8_t)bitmap[j * w + i]);
+//     }
+//   }
+//   endWrite();
+// }
+
 /**************************************************************************/
 /*!
-   @brief   Draw a "8-bit" image at the specified (x,y) position. 
+   @brief   Draw a "8-bit" image with a 1-bit mask
+   (set bits = opaque, unset bits = clear) at the specified (x,y) position. BOTH
+   buffers (color and mask) must be PROGMEM-resident.
     @param    x   Top left corner x coordinate
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with 8-bit color bitmap
+    @param    mask  byte array with monochrome mask bitmap
     @param    w   Width of bitmap in pixels
     @param    h   Height of bitmap in pixels
 */
 /**************************************************************************/
-void Inky::drawRGBBitmap(int16_t x, int16_t y, uint8_t *bitmap,
-                                 int16_t w, int16_t h) {
-  startWrite();
-  for (int16_t j = 0; j < h; j++, y++) {
-    for (int16_t i = 0; i < w; i++) {
-      writePixel(x + i, y, (uint8_t)bitmap[j * w + i]);
-    }
-  }
-  endWrite();
-}
+// void Adafruit_GFX::drawRGBBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
+//                                  const uint8_t mask[], int16_t w, int16_t h) {
+//   int16_t bw = (w + 7) / 8; // Bitmask scanline pad = whole byte
+//   uint8_t byte = 0;
+//   startWrite();
+//   for (int16_t j = 0; j < h; j++, y++) {
+//     for (int16_t i = 0; i < w; i++) {
+//       if (i & 7)
+//         byte <<= 1;
+//       else
+//         byte = &mask[j * bw + i / 8];
+//       if (byte & 0x80) {
+//         writePixel(x + i, y, pgm_read_word(&bitmap[j * w + i]));
+//       }
+//     }
+//   }
+//   endWrite();
+// }
 
+/**************************************************************************/
+/*!
+   @brief   Draw a RAM-resident 16-bit image (RGB 5/6/5) with a 1-bit mask (set
+   bits = opaque, unset bits = clear) at the specified (x,y) position. BOTH
+   buffers (color and mask) must be RAM-resident. For 16-bit display devices; no
+   color reduction performed.
+    @param    x   Top left corner x coordinate
+    @param    y   Top left corner y coordinate
+    @param    bitmap  byte array with 16-bit color bitmap
+    @param    mask  byte array with monochrome mask bitmap
+    @param    w   Width of bitmap in pixels
+    @param    h   Height of bitmap in pixels
+*/
+/**************************************************************************/
+// void Adafruit_GFX::drawRGBBitmap(int16_t x, int16_t y, uint16_t *bitmap,
+//                                  uint8_t *mask, int16_t w, int16_t h) {
+//   int16_t bw = (w + 7) / 8; // Bitmask scanline pad = whole byte
+//   uint8_t byte = 0;
+//   startWrite();
+//   for (int16_t j = 0; j < h; j++, y++) {
+//     for (int16_t i = 0; i < w; i++) {
+//       if (i & 7)
+//         byte <<= 1;
+//       else
+//         byte = mask[j * bw + i / 8];
+//       if (byte & 0x80) {
+//         writePixel(x + i, y, bitmap[j * w + i]);
+//       }
+//     }
+//   }
+//   endWrite();
+// }
