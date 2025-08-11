@@ -31,7 +31,8 @@ typedef enum {
     Yellow_wHAT_SSD1683,
     _7_Colour_800x480_AC073TC1A,
     Spectra_6_13_3_1600x1200_EL133UF1,
-    Spectra_6_7_3_800x480_E673
+    Spectra_6_7_3_800x480_E673,
+    DUMMY
 } Display_Var_t ;
 
 const char * const DisplayVars[] = {
@@ -57,7 +58,8 @@ const char * const DisplayVars[] = {
     "Yellow wHAT (SSD1683)",
     "7-Colour 800x480 (AC073TC1A)",
     "Spectra 6 13.3 1600 x 1200 (EL133UF1)",
-    "Spectra 6 7.3 800 x 480 (E673)"
+    "Spectra 6 7.3 800 x 480 (E673)",
+    "DUMMY",
 };
 
 typedef struct{
